@@ -9,7 +9,7 @@ const register = async (request) => {
   const user = validate(registerUserValidation, request);
 
   const [countUser] = await db.query('SELECT COUNT(*) as count FROM users WHERE username = ?', [user.username]);
-  console.log(countUser[0].count);
+
   if (countUser[0].count === 1) {
     throw new ResponseError(400, "Username already exists");
   }
