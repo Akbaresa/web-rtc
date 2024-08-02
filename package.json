@@ -1,22 +1,27 @@
 {
-  "name": "webrtc-app",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "rtc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
+    "axios": "^1.7.2",
+    "bootstrap": "^5.3.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.0",
     "socket.io": "^4.7.5",
-    "uuid": "^10.0.0"
+    "socket.io-client": "^4.7.5",
+    "uuid": "^10.0.0",
+    "vue": "^3.4.29",
+    "vue-router": "^4.3.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "vite": "^5.3.1"
   }
 }
