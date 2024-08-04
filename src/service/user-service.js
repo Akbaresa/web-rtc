@@ -4,6 +4,7 @@ import { getUserValidation, loginUserValidation, registerUserValidation, updateU
 import { validate } from "../validation/validation.js";
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
+import { hashBcrypt } from "../helper/security-helper.js"
 
 const register = async (request) => {
   const user = validate(registerUserValidation, request);
@@ -14,7 +15,7 @@ const register = async (request) => {
     throw new ResponseError(400, "Username already exists");
   }
 
-  user.password = await bcrypt.hash(user.password, 10);
+  user.password = await hashBcrypt(user.password);
 
   await db.query('INSERT INTO users (username, nama, email, password) VALUES (?, ?, ?, ?)', 
   [user.username, user.name, user.email, user.password]);
@@ -23,6 +24,7 @@ const register = async (request) => {
     username: user.username,
     name: user.name
   };
+  
 };
 
 const login = async (request) => {
