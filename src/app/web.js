@@ -12,11 +12,11 @@ import { headerRouter } from "../routes/api.js";
 export const web = express();
 
 dotenv.config();
+web.use(cors({
+    origin: 'http://localhost:5173',
+}));
 web.use(express.json());
 web.use(bodyParser.json());
 web.use(publicRouter);
 web.use(headerRouter);
 web.use(express.static('public'));
-web.use(cors({
-    origin: 'http://localhost:5173',
-}));
