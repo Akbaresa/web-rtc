@@ -1,89 +1,94 @@
 <template>
-    <div class="container">
-      <h1 class="my-4">Room {{ roomId }}</h1>
-      <ul class="list-group">
-        <li v-for="user in users" :key="user.email" class="list-group-item d-flex justify-content-between align-items-center">
-          {{ user.email }}
-          <span v-if="!user.cameraStatus" class="badge bg-danger">Camera Off</span>
-          <video v-if="user.cameraStatus" :id="`video-${user.email}`" autoplay></video>
-        </li>
-      </ul>
-      <video ref="myVideo" autoplay></video>
-      <button @click="toggleCamera" class="btn btn-secondary mt-3">Toggle Camera</button>
-    </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue';
-  import { useRoute } from 'vue-router';
-  import io from 'socket.io-client';
-  import { fetchUsers } from '@/api';
-  
-  const route = useRoute();
-  const roomId = route.params.roomId;
-  const socket = io('http://localhost:3000');
-  const users = ref([]);
-  const email = ref(''); 
-  const myVideo = ref(null);
-  let cameraStatus = true;
-  let stream = null;
-  
-  // Function to start camera
-  const startCamera = async () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+  <div class="container">
+    <p>Room: {{ roomId }}</p>
+    <p>Username: {{ username }}</p>
+
+
+    <button 
+      @click="toggleCamera" 
+      :class="cameraActive ? 'btn btn-danger' : 'btn btn-primary'"
+    >
+      {{ cameraActive ? 'Close Camera' : 'Open Camera' }}
+    </button>
+
+    <button 
+      @click="toggleMicrophone" 
+      :class="microphoneActive ? 'btn btn-danger' : 'btn btn-primary'"
+    >
+      {{ microphoneActive ? 'Close Microphone' : 'Open Microphone' }}
+    </button>
+
+    <video ref="videoElement" autoplay playsinline></video>
+  </div>
+</template>
+
+<script setup>
+import { useRoute } from 'vue-router';
+import { getUser } from '@/api/user';
+import { ref, onMounted } from 'vue';
+
+const route = useRoute();
+const roomId = route.params.roomId;
+const username = ref('');
+
+const videoElement = ref(null);
+const cameraActive = ref(false);
+const microphoneActive = ref(false);
+let cameraStream = null;
+let microphoneStream = null;
+
+onMounted(async () => {
+  await getUser()
+    .then(response => {
+      console.log(response);
+      username.value = response.data.data.username;
+    });
+});
+
+const toggleCamera = async () => {
+  if (cameraActive.value) {
+    // Stop camera stream
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      videoElement.value.srcObject = null;
+      cameraStream = null;
     }
-    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    if (myVideo.value) {
-      myVideo.value.srcObject = stream;
+    cameraActive.value = false;
+  } else {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoElement.value.srcObject = cameraStream;
+      cameraActive.value = true;
+    } catch (err) {
+      console.error("Error accessing camera: ", err);
     }
-  };
-  
-  // Function to stop camera
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      stream = null;
+  }
+};
+
+const toggleMicrophone = async () => {
+  if (microphoneActive.value) {
+    if (microphoneStream) {
+      microphoneStream.getTracks().forEach(track => track.stop());
+      microphoneStream = null;
     }
-  };
-  
-  // Toggle camera status
-  const toggleCamera = async () => {
-    if (cameraStatus) {
-      stopCamera();
-    } else {
-      await startCamera();
+    microphoneActive.value = false;
+  } else {
+    try {
+      microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      microphoneStream.getTracks().forEach(track => track.stop()); // Optionally stop the stream if you don't need it
+      microphoneActive.value = true;
+    } catch (err) {
+      console.error("Error accessing microphone: ", err);
     }
-    cameraStatus = !cameraStatus;
-    socket.emit('toggle-camera', roomId, email, cameraStatus);
-  };
-  
-  const fetchUser = async (roomId) => {
-    const response = await fetchUsers(roomId);
-    users.value = response.data;
-  };
-  
-  socket.on('user-connected', (userId) => {
-    console.log('User connected:', userId);
-    fetchUser(roomId);
-  });
-  
-  socket.on('camera-toggled', (userId, status) => {
-    console.log('Camera toggled:', userId, status);
-    const user = users.value.find(u => u.email === userId);
-    if (user) {
-      user.cameraStatus = status;
-      const videoElement = document.getElementById(`video-${user.email}`);
-      if (status && !videoElement.srcObject) {
-        // videoElement.srcObject =;
-      }
-    }
-  });
-  
-  // Initialize connection and fetch user data
-  onMounted(async () => {
-    
-    socket.emit('join-room', roomId, email);
-    fetchUser(roomId);
-  });
-  </script>
+  }
+};
+</script>
+
+<style scoped>
+video {
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid #ccc;
+  margin-top: 20px;
+}
+</style>
