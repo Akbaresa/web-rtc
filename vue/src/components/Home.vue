@@ -1,9 +1,29 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Modal } from 'bootstrap';
+import { createRoomNoPassword } from '@/api/room';
+import { useRouter } from 'vue-router';
 
 const isAllowAllActive = ref(true);
 const isWithPasswordActive = ref(false);
+const password = ref('');
+const router = useRouter();
+
+const saveChanges = async () => {
+  if (isAllowAllActive.value) {
+    await createRoomNoPassword()
+    .then(response => {
+      router.push(`room/${response.data.data.kode}`);
+    });
+  } else if (isWithPasswordActive.value && password.value) {
+    await createRoomWithPassword().then(response => {
+      console.log(response);
+    });
+  } else {
+    console.log('Password is required');
+  }
+};
+
 
 const activateAllowAll = () => {
   isAllowAllActive.value = true;
@@ -46,32 +66,36 @@ onBeforeUnmount(() => {
               </button>
             </div>
             <div class="modal-body">
-              <div class="mb-3 d-flex">
-                <button
-                  :class="['btn', isAllowAllActive ? 'btn-primary' : 'btn-outline-primary']"
-                  @click="activateAllowAll"
+              <form>
+                <div class="mb-3 d-flex">
+                  <button
+                    type="button"
+                    :class="['btn', isAllowAllActive ? 'btn-primary' : 'btn-outline-primary']"
+                    @click="activateAllowAll"
+                  >
+                    <i class="mdi mdi-cellphone-link" style="font-size: 2rem;"></i>
+                    <p>allow all</p>
+                  </button>
+                  <button
+                    type="button"
+                    :class="['btn', 'ms-lg-2', isWithPasswordActive ? 'btn-primary' : 'btn-outline-primary']"
+                    @click="activateWithPassword"
+                  >
+                    <i class="mdi mdi-file-lock" style="font-size: 2rem;"></i>
+                    <p>with password</p>
+                  </button>
+                </div>
+                <input
+                  v-if="isWithPasswordActive"
+                  type="password"
+                  class="form-control py-2"
+                  placeholder="Password"
                 >
-                  <i class="mdi mdi-cellphone-link" style="font-size: 2rem;"></i>
-                  <p>allow all</p>
-                </button>
-                <button
-                  :class="['btn', 'ms-lg-2', isWithPasswordActive ? 'btn-primary' : 'btn-outline-primary']"
-                  @click="activateWithPassword"
-                >
-                  <i class="mdi mdi-file-lock" style="font-size: 2rem;"></i>
-                  <p>with password</p>
-                </button>
-              </div>
-              <input
-                v-if="isWithPasswordActive"
-                type="password"
-                class="form-control py-2"
-                placeholder="Password"
-              >
+              </form>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary text-white" @click="hideModal">Close</button>
-              <button type="button" class="btn btn-primary">Save changes</button>
+              <button type="submit" class="btn btn-primary" @click="saveChanges">Save changes</button>
             </div>
           </div>
         </div>
