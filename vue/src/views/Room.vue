@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <p>Room: {{ roomId }}</p>
+    <p>Room: {{ roomKode }}</p>
     <p>Username: {{ username }}</p>
 
     <button @click="toggleCamera" :class="cameraActive ? 'btn btn-danger' : 'btn btn-primary'">
@@ -19,13 +19,14 @@
 <script setup>
 import { useRoute } from 'vue-router';
 import { getUser } from '@/api/user';
+import { joinUserRoom } from '@/api/userRoom';
 import { ref, onMounted } from 'vue';
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:4000');
 
 const route = useRoute();
-const roomId = route.params.roomId;
+const roomKode = route.params.kode;
 const username = ref('');
 
 const videoElement = ref(null);
@@ -42,8 +43,21 @@ onMounted(async () => {
       console.log(response);
       username.value = response.data.data.username;
     });
+  
+  const data = ({
+    kode: roomKode,
+    username: username.value
+  });
+  await joinUserRoom(data)
+  .then(response => {
+    console.log(response)
+  }).catch(error => {
+    console.log(error);
+  });
 
-  socket.emit('join-room', roomId, username.value);
+  
+
+  socket.emit('join-room', roomKode, username.value);
 
   socket.on('user-connected', (userId) => {
     console.log('User connected: ', userId);
