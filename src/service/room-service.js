@@ -34,7 +34,7 @@ const createRoomWithPassword = async ( password ) => {
 const getRoomByKode = async (kode) => {
     kode = validate(getRoomByKodeValidation, kode);
 
-    const [roomRows] = await db.query('SELECT id_room FROM room WHERE kode = ?', [kode]);
+    const [roomRows] = await db.query('SELECT * FROM room WHERE kode = ?', [kode]);
 
     if(roomRows.length === 0){
         throw new ResponseError(404, "Room not found");
