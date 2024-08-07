@@ -16,6 +16,22 @@ const getAllUserByKodeRoom = async (req, res, next) => {
     }
 }
 
+const joinUserRoom = async (req, res, next) => {
+    try {
+        const result = await userRoomService.joinUserRoom(req.body);
+        return res.status(200).json({
+            data: result
+        });
+    }catch(e){
+        if (e instanceof ResponseError) {
+            res.status(e.status).json(e.toJSON());
+        } else {
+            next(e);
+        }
+    }
+}
+
 export default {
-    getAllUserByKodeRoom
+    getAllUserByKodeRoom,
+    joinUserRoom
 }
