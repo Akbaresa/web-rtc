@@ -12,7 +12,12 @@ const register = async (request) => {
   const [countUser] = await db.query('SELECT COUNT(*) as count FROM users WHERE username = ?', [user.username]);
 
   if (countUser[0].count === 1) {
-    throw new ResponseError(400, "Username already exists");
+    throw new ResponseError(400, "Username sudah dipakai");
+  }
+  const [countUserEmail] = await db.query('SELECT COUNT(*) as count FROM users WHERE email = ?', [user.email]);
+
+  if (countUserEmail[0].count === 1) {
+    throw new ResponseError(400, "Email sudah dipakai");
   }
 
   user.password = await hashBcrypt(user.password);
