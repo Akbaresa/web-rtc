@@ -19,7 +19,7 @@ const router = createRouter({
       component: Register 
     },
     { 
-      path: '/room/:roomId', 
+      path: '/room/:kode', 
       component: Room 
     },
     {
