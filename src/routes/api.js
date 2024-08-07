@@ -11,7 +11,7 @@ headerRouter.get("/api/users/current" , userController.get);
 headerRouter.post("/api/room/create-room-allow-all", roomController.createRoomAllowAll);
 headerRouter.post("/api/room/create-room-password", roomController.createRoomWithPassword);
 headerRouter.get("/api/room/get-room", roomController.getRoomByKode);
-headerRouter.post("/api/room/join", roomController.joinUserRoom);
+headerRouter.post("/api/room/join", userRoomController.joinUserRoom);
 headerRouter.post("/api/all-user-room", userRoomController.getAllUserByKodeRoom);
 
 export {
