@@ -10,24 +10,27 @@
     <button @click="toggleMicrophone" :class="microphoneActive ? 'btn btn-danger' : 'btn btn-primary'">
       {{ microphoneActive ? 'Close Microphone' : 'Open Microphone' }}
     </button>
-
+    <div v-for="(item, index) in users" :key="index">
+      <p>{{ item.username }}</p>
+    </div>
     <video ref="videoElement" autoplay playsinline></video>
     <video ref="remoteVideoElement" autoplay playsinline></video>
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
+import { io } from 'socket.io-client';
 import { useRoute } from 'vue-router';
 import { getUser } from '@/api/user';
-import { joinUserRoom } from '@/api/userRoom';
-import { ref, onMounted } from 'vue';
-import { io } from 'socket.io-client';
+import { joinUserRoom, getAllUserRoom } from '@/api/userRoom';
 
 const socket = io('http://localhost:4000');
 
 const route = useRoute();
 const roomKode = route.params.kode;
 const username = ref('');
+const users = ref([]);
 
 const videoElement = ref(null);
 const remoteVideoElement = ref(null);
@@ -38,50 +41,67 @@ let microphoneStream = null;
 let peerConnection = null;
 
 onMounted(async () => {
-  await getUser()
-    .then(response => {
-      console.log(response);
-      username.value = response.data.data.username;
+  try {
+    socket.on('connect', () => {
+      console.log('Connected to server');
     });
-  
-  const data = ({
-    kode: roomKode,
-    username: username.value
-  });
-  await joinUserRoom(data)
-  .then(response => {
-    console.log(response)
-  }).catch(error => {
-    console.log(error);
-  });
 
-  
+    const userResponse = await getUser();
+    console.log(userResponse);
+    username.value = userResponse.data.data.username;
 
-  socket.emit('join-room', roomKode, username.value);
+    
+    const joinData = {
+      kode: roomKode,
+      username: username.value
+    };  
 
-  socket.on('user-connected', (userId) => {
-    console.log('User connected: ', userId);
-    createPeerConnection(userId);
-  });
+    socket.on('updateUserList', (newUser) => {
+      console.log('New user added:', newUser);
+      users.value.push(newUser.user);
+      console.log(users.value);
+    });
 
-  socket.on('signal', async (data) => {
-    if (data.id !== socket.id) {
-      if (data.sdp) {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        if (data.sdp.type === 'offer') {
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-          socket.emit('signal', { sdp: answer, id: socket.id, roomId });
-        }
-      } else if (data.candidate) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-      }
-    }
-  });
+    socket.emit('joinRoom', joinData);
+    console.log(users.value)
 
-  socket.on('user-disconnected', (userId) => {
-    console.log('User disconnected: ', userId);
-  });
+    // const userRoomData = { kode: roomKode };
+    // const allUsersResponse = await getAllUserRoom(userRoomData);
+    // users.value = allUsersResponse.data;
+
+    // socket.on('user-connected', async (userId) => {
+    //   console.log('User connected:', userId);
+    //   createPeerConnection(userId);
+    // });
+
+    // socket.on('signal', async (data) => {
+    //   if (data.id !== socket.id) {
+    //     if (data.sdp) {
+    //       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    //       if (data.sdp.type === 'offer') {
+    //         const answer = await peerConnection.createAnswer();
+    //         await peerConnection.setLocalDescription(answer);
+    //         socket.emit('signal', { sdp: answer, id: socket.id, roomId });
+    //       }
+    //     } else if (data.candidate) {
+    //       await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    //     }
+    //   }
+    // });
+
+    // socket.on('user-disconnected', async (userId) => {
+    //   console.log('User disconnected:', userId);
+    // });
+
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+onUnmounted(() => {
+  socket.off('connect');
+  socket.off('updateUserList');
+  socket.off('joinRoom');
 });
 
 const createPeerConnection = (userId) => {
@@ -97,7 +117,9 @@ const createPeerConnection = (userId) => {
     remoteVideoElement.value.srcObject = event.streams[0];
   };
 
-  cameraStream.getTracks().forEach(track => peerConnection.addTrack(track, cameraStream));
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => peerConnection.addTrack(track, cameraStream));
+  }
 
   peerConnection.createOffer().then(offer => {
     peerConnection.setLocalDescription(offer);
@@ -134,13 +156,13 @@ const toggleMicrophone = async () => {
   } else {
     try {
       microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      microphoneStream.getTracks().forEach(track => track.stop()); 
       microphoneActive.value = true;
     } catch (err) {
       console.error("Error accessing microphone: ", err);
     }
   }
 };
+
 </script>
 
 <style scoped>
