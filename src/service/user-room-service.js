@@ -7,42 +7,54 @@ import { getAllUserRoomValidation, joinUserRoomValidation } from "../validation/
 import roomService from "../service/room-service.js";
 import { logStringify } from "../helper/log-helper.js";
 
-const getAllUserRoom = async (kode) => {
+export const getAllUserRoom = async (kode) => {
     validate(getAllUserRoomValidation, kode);
 
-    const room = await roomService.getRoomByKode(kode);
-
-    const [userRoomRow] = await db.query('SELECT * FROM user_room'
-    + 'JOIN users ON user_room.user_id = users.id_user WHERE user_room.room_id = ?', 
-    [room.id_room]);
-    
-    return userRoomRow;
-}
-
-const joinUserRoom = async (request) => {
-    const userRoom = validate(joinUserRoomValidation, request);
-
-    const room = await db.query('SELECT id_room FROM room WHERE kode = ?', [userRoom.kode]);
-    const user = await db.query('SELECT id_user FROM users WHERE username = ? ', [userRoom.username]);
-    
-    const roomId = room[0][0].id_room;
-    const userId = user[0][0].id_user;
-
-    const [countUserRoom] = await db.query('SELECT COUNT(*) as count FROM user_room WHERE user_id = ? AND room_id = ?', [userId, roomId]);
-
-    if(countUserRoom[0].count === 1) {
-        throw new ResponseError(400, "User sudah masuk");
+    const [room] = await db.query('SELECT id_room FROM room WHERE kode = ?', [kode]);
+    if (room.length > 0) {
+      const roomId = room[0].id_room;
+  
+      const [userRoomRows] = await db.query(
+        'SELECT * FROM user_room JOIN users ON user_room.user_id = users.id_user WHERE user_room.room_id = ?',
+        [roomId]
+      );
+  
+      return userRoomRows;
+    } else {
+      throw new Error('Room not found');
     }
+  };
 
-    await db.query('INSERT INTO user_room (user_id, room_id) VALUES (?, ?)', [userId , roomId]);
+  export const joinUserRoomSocket = async (io, socket, data) => {
+        const { kode, username } = data;
 
-    return {
-        userId: userId,
-        roomId: roomId
-    }
-}
+        const [room] = await db.query('SELECT * FROM room WHERE kode = ?', [kode]);
+        if (!room || room.length === 0) {
+            throw new Error('Room not found');
+        }
+    
+        const roomId = room[0].id_room;
+    
+        const [user] = await db.query('SELECT * FROM users WHERE username = ? ', [username]);
+        if (!user || user.length === 0) {
+            throw new Error('User not found');
+        }
+    
+        const userId = user[0].id_user;
+    
+        const [countUserRoom] = await db.query('SELECT COUNT(*) as count FROM user_room WHERE user_id = ? AND room_id = ?', [userId, roomId]);
+        if (countUserRoom[0].count === 1) {
+            throw new Error('User already in room');
+        }
+    
+        await db.query('INSERT INTO user_room (user_id, room_id) VALUES (?, ?)', [userId, roomId]);
+        return {
+            user: user[0],
+            room: room[0]
+        };
+  };
 
 export default {
     getAllUserRoom,
-    joinUserRoom
+    joinUserRoomSocket
 }
