@@ -8,3 +8,12 @@ export const joinUserRoom = async (data) => {
         throw e;
     }
 }
+
+export const getAllUserRoom = async (data) => {
+    try{
+        const result = await apiHeaderService.post("all-user-room", data);
+        return result.data;
+    }catch(e){
+        throw e;
+    }
+}
