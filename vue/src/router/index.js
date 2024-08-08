@@ -20,7 +20,8 @@ const router = createRouter({
     },
     { 
       path: '/room/:kode', 
-      component: Room 
+      component: Room ,
+      meta: { requiresAuth: true }
     },
     {
       path : '/',
